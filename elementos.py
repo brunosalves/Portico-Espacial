@@ -6,6 +6,7 @@ Disciplina: Metodo dos Elementos Finitos
 Professor: Paulo Marcelo Vieira Ribeiro
 
             Tipos de elementos
+            
 """
 from settings import ngl, elem_matriz
 from sympy import symbols, diff, Matrix, integrate
