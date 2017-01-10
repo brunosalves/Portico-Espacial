@@ -1,0 +1,49 @@
+if __name__ == '__main__':
+    
+######################## ENTRADA DE DADOS ####################################    
+    #Apenas enquanto nao se providencia uma GUI ao programa
+    
+    
+    E = 2.0 * 10**11 # Modulo de Elasticidade em Pa
+    ni = 0.2 # coeficiente de poisson
+    P = 1000.0 # Forca atuante em Newtons
+    A = 0.5 ** 2 # Area da secao transversa
+    G = E/(2.0*(1.0 + ni)) # Modulo de elasticidade transversal em Pa
+    J = 2.25 * ( 0.5 / 2.0 ) ** 4.0 # Constante torsional para secao retangular
+    p = 2500.0*A # densidade por metro linear do elemento
+    I = 0.5 ** 4.0 / 12.0 # Momentos de inercia em m^4
+
+    # Dados de entrada para se fazer a analise dinamica
+    from math import pi################################################################    
+    freq_carreg = 2.0*pi/0.2 # Frequencia do carregamento aplicado em rad/s
+    t_carreg = 1.0 # Tempo total que o carregamento sera aplicado
+    dt = 0.001 # Passo de tempo da anlise dinamica
+        
+
+    pontos = [[0.0,0.0,0.0],[0.0,0.0,1.0],[0.0,0.0,2.0],[0.0,0.0,3.0]]
+    conectividades = [[0,1]]
+    rest = [0,1,2,3,4,5]
+    forcas_estaticas = [[len(pontos),1,1000.0]]
+    barras = [Barra(pontos[0], pontos[1], A, E, I, I, G, J, p),\
+              Barra(pontos[1], pontos[2], A, E, I, I, G, J, p),\
+              Barra(pontos[2], pontos[3], A, E, I, I, G, J, p)]
+    
+
+    ##################### Programa principal ######################    
+    
+    # Passo 1 - Calcular as matrizes do sistema
+    kg,kgr,mg,mgr,fgr = gerar_matrizes(pontos,barras,rest,forcas_estaticas)  
+    
+    # Passo 2 - Analise estatica
+    x,fg_c_reacoes = analise_estatica(kg,kgr,fgr,pontos, rest, forcas_estaticas)
+    
+    # Passo 3 - Analise Dinamica
+    w,v,x_din,tempo,f_din = \
+    analise_dinamica(kgr,mgr,fgr,freq_carreg,t_carreg,dt,cos,pontos, rest)
+    
+    testando = resposta_din_ponto_i(len(x_din[0])-6,x_din)    
+    
+    from matplotlib.pyplot import plot
+    
+    plot(tempo,testando)
+    
