@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Sep 28 13:11:37 2016
-
 Exemplo teste de viga biapoiada
-
 @author: Bruno1
 """
 from __future__ import division
 from elementos import Barra
 from processamento import calcular_kg, atribuir_restricoes, definir_fg
 from solucionar_problema import analise_estatica
+from posprocessamento import mostrar_barras
 import numpy as np
 
 if __name__ == "__main__":
@@ -42,3 +41,4 @@ if __name__ == "__main__":
     
     x,fg_c_reacoes = analise_estatica(kg,kgr,fgr,pontos, restricoes,forcas_estaticas)
     
+    mostrar_barras(barras)

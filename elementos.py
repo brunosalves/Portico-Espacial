@@ -6,7 +6,6 @@ Disciplina: Metodo dos Elementos Finitos
 Professor: Paulo Marcelo Vieira Ribeiro
 
             Tipos de elementos
-            
 """
 from settings import ngl, elem_matriz
 from sympy import symbols, diff, Matrix, integrate
@@ -17,10 +16,33 @@ import numpy as np
 ##### Elementos de barras tridimensionais
 
 class Barra(object):
+    """This class has the aim to represent beam elements.
+    
+    *Attributes:*
+    
+    P1,P2 : array_like
+    Array like element containing the coordinates of the first (P1) and second 
+    (P2) points, which define the beam.
+    
+    A,E,Iz,Iy,G,J,p : reals
+    Real values refering to beam's properties: section area (A), Young's
+    modulus (E), second moment of inertia around specific axis (Iz and Iy),
+    shear modulus (G) and self weight per unit length (p).
+    
+    Ke : array_like
+    Local beam's stiffness matrix.
+    
+    
+    
+    *Functions:*
+    """
 
     npontos = 2
 
     def __init__(self, P1, P2, A, E, Iz, Iy, G, J, p):
+        assert A>=0 and E>=0 and Iz>=0 and Iy>=0 and G>=0 and J>=0 and p>=0,\
+        "Beam properties must be greater or equal zero"
+        
         self.P1 = P1
         self.P2 = P2
         self.lista_pontos = [P1,P2]
@@ -43,15 +65,6 @@ class Barra(object):
         self.Lambda = self.calcular_lambda()        
         self.T = self.calcular_T()
         self.me = self.calcular_me()
-
-    def definir_ref_pontos(self,pontos):
-        
-        ref_pontos = []
-        
-        for i in self.lista_pontos:            
-            ref_pontos.append(pontos.index(i)*ngl)
-            
-        return ref_pontos
 
     def calcular_ke(self):
         #Constante que sera multiplicada pela matriz de rigidez adimensional
@@ -123,7 +136,8 @@ class Barra(object):
         return Ke
 
     def calcular_lambda(self):
-        
+        """Matriz que ira compor a matriz T
+        """
         D = ( self.l ** 2 + self.m ** 2 ) ** 0.5        
 
         Lambda = np.zeros( ( 3 , 3 ))
@@ -148,8 +162,8 @@ class Barra(object):
         return Lambda
 
     def calcular_T(self):
-        
-        #Matriz rotacao
+        """Matriz rotacao
+        """
         T = np.zeros((12,12))
 
         Lambda = self.Lambda        
@@ -181,7 +195,9 @@ class Barra(object):
         
         #definir a matriz global so com a parte deste elemento
         
-        ref_pontos = self.definir_ref_pontos(pontos)
+        ref_pontos = []
+        for i in self.lista_pontos:            
+            ref_pontos.append(pontos.index(i)*ngl)
         self.ref_pontos = ref_pontos
         
         #Introduzir a KL em Kge
@@ -192,15 +208,16 @@ class Barra(object):
                 j1 = (i-i%ngl)/ngl
                 k1 = (j-j%ngl)/ngl
                 
-                x = ref_pontos[j1]+i%ngl
-                y = ref_pontos[k1]+j%ngl
+                x = ref_pontos[j1] + i % ngl
+                y = ref_pontos[k1] + j % ngl
                 
-                Kge[x,y] =+ kl[i,j]
+                Kge[x,y] += kl[i,j]
                         
         return Kge
 
     def calcular_me(self):
-        
+        """Create the beam's mass matrix
+        """
         me = lil_matrix((12,12))
 
         if self.A != 0:
@@ -264,10 +281,10 @@ class Barra(object):
                 j1 = (i-i%ngl)/ngl
                 k1 = (j-j%ngl)/ngl
                 
-                x = self.ref_pontos[j1]+i%ngl
-                y = self.ref_pontos[k1]+j%ngl
+                x = self.ref_pontos[j1] + i % ngl
+                y = self.ref_pontos[k1] + j % ngl
                 
-                mg[x,y] = mg[x,y] + self.me[i,j]                    
+                mg[x,y] += self.me[i,j]                    
 
         return mg
 
@@ -295,15 +312,6 @@ class ElementosPlanos(object):
         """
         
         return D
-
-    def definir_ref_pontos(self,pontos):
-        
-        ref_pontos = []
-        
-        for i in self.lista_pontos:            
-            ref_pontos.append(pontos.index(i)*ngl)
-            
-        return ref_pontos
 
 class ElementoCST(ElementosPlanos):
 
@@ -383,7 +391,9 @@ class ElementoCST(ElementosPlanos):
         
         self.Kl = kl
         
-        ref_pontos = self.definir_ref_pontos(pontos)
+        ref_pontos = []
+        for i in self.lista_pontos:            
+            ref_pontos.append(pontos.index(i)*ngl)
         self.ref_pontos = ref_pontos
         
         #Introduzir a KL em Kge
@@ -467,7 +477,9 @@ class ElementoQ4(ElementosPlanos):
         
         kl = self.kl
         
-        ref_pontos = self.definir_ref_pontos(pontos)
+        ref_pontos = []
+        for i in self.lista_pontos:            
+            ref_pontos.append(pontos.index(i)*ngl)
         self.ref_pontos = ref_pontos
         
         #Introduzir a KL em Kge
@@ -571,7 +583,9 @@ class ElementoLST(ElementosPlanos):
         
         kl = self.kl
         
-        ref_pontos = self.definir_ref_pontos(pontos)
+        ref_pontos = []
+        for i in self.lista_pontos:            
+            ref_pontos.append(pontos.index(i)*ngl)
         self.ref_pontos = ref_pontos
         
         #Introduzir a KL em Kge
@@ -645,7 +659,9 @@ class ElementoQ8(ElementosPlanos):
         
         kl = self.kl
         
-        ref_pontos = self.definir_ref_pontos(pontos)
+        ref_pontos = []
+        for i in self.lista_pontos:            
+            ref_pontos.append(pontos.index(i)*ngl)
         self.ref_pontos = ref_pontos
         
         #Introduzir a KL em Kge
@@ -659,6 +675,6 @@ class ElementoQ8(ElementosPlanos):
                 x = ref_pontos[j1]+i%ngl
                 y = ref_pontos[k1]+j%ngl
                 
-                Kge[x,y] = Kge[x,y] + kl[i,j]                    
+                Kge[x,y] += kl[i,j]                    
 
         return Kge

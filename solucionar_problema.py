@@ -55,7 +55,8 @@ from settings import ngl
 from processamento import calcular_kg, atribuir_restricoes, definir_fg,\
 resolver_sistema, expandir_xgr, recriar_fg, calcular_esforcos_CST, \
 encontrar_frequencias, calcular_mg, f_dinamico_func, \
-metodo_da_diferenca_central, resposta_din_ponto_i, metodo_de_newmark
+metodo_da_diferenca_central, resposta_din_ponto_i, metodo_de_newmark,\
+gerar_matrizes, analise_estatica, analise_dinamica
 from elementos import Barra
 from math import cos,pi
 from entrada_de_dados import importar_barras, importar_pontos
@@ -69,51 +70,7 @@ from acessar_conteudo import inspecionar
 
 ########################### INICIO DO PROGRAMA ################################
 
-def gerar_matrizes(pontos,barras,restricoes,forcas,massas_pontuais):
-    
-    kg = calcular_kg(pontos, barras) 
-    
-    kgr = atribuir_restricoes(kg,restricoes)
-    
-    mg = calcular_mg(pontos, barras)    
 
-    for i in massas_pontuais:
-        
-        mg[i[1],i[1]] = mg[i[1],i[1]] + i[0]
-
-    mgr = atribuir_restricoes(mg,restricoes)
-    
-    fg = definir_fg(forcas,len(pontos))
-    
-    fgr = atribuir_restricoes(fg,restricoes)
-    
-    return kg,kgr,mg,mgr,fgr,fg
-
-def analise_estatica(kg,kgr,fgr,pontos, restricoes, forcas):
-
-    xgr = resolver_sistema(kgr,fgr)
-    
-    x = expandir_xgr(xgr,pontos, restricoes)
-    
-    fg_c_reacoes = recriar_fg(kgr,xgr,fgr,kg,x)  
-    
-    return x,fg_c_reacoes
-
-def analise_dinamica(kgr,mgr,fgr,freq_carreg,t_carreg,dt,funcao,pontos, \
-restricoes):
-
-    w, v = encontrar_frequencias(kgr,mgr)
-    
-    forcas_dinamicas = f_dinamico_func(fgr,freq_carreg,t_carreg,dt,funcao)
-    
-    x_din,t = metodo_de_newmark(mgr,kgr,forcas_dinamicas,t_carreg,dt)
-
-    x_din2=[]
-    for i in range(len(x_din)):
-        
-        x_din2.append(expandir_xgr(x_din[i],pontos, restricoes))
-    
-    return w,v,x_din2,t,forcas_dinamicas
 
 if __name__ == '__main__':
     
