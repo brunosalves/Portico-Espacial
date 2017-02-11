@@ -40,9 +40,10 @@ class Barra(object):
     npontos = 2
 
     def __init__(self, P1, P2, A, E, Iz, Iy, G, J, p):
+        """
         assert A>=0 and E>=0 and Iz>=0 and Iy>=0 and G>=0 and J>=0 and p>=0,\
         "Beam properties must be greater or equal zero"
-        
+        """
         self.P1 = P1
         self.P2 = P2
         self.lista_pontos = [P1,P2]
@@ -65,6 +66,11 @@ class Barra(object):
         self.Lambda = self.calcular_lambda()        
         self.T = self.calcular_T()
         self.me = self.calcular_me()
+        
+        # [Kl] =  [T]^t . [Ke] . [T]   
+        kl = np.dot(self.T.T, self.Ke)
+        kl = np.dot(kl,self.T) #Matriz local rotacionada para os eixos globais    
+        self.Kl = kl    
 
     def calcular_ke(self):
         #Constante que sera multiplicada pela matriz de rigidez adimensional
@@ -73,11 +79,10 @@ class Barra(object):
         EIy_L3 = self.E * self.Iy / ( self.L ** 3)        
         GJ_L = self.G * self.J / self.L
         
-        
         L = self.L
         
         #Matriz de rigidez
-        Ke = np.zeros( (12,12) , dtype = elem_matriz)       
+        Ke = np.zeros( (12,12) , dtype=elem_matriz)       
         
         #Parcela de esforco normal
         Ke[0,0] = EA_L
@@ -164,7 +169,7 @@ class Barra(object):
     def calcular_T(self):
         """Matriz rotacao
         """
-        T = np.zeros((12,12))
+        T = np.zeros((12, 12))
 
         Lambda = self.Lambda        
         
@@ -186,13 +191,6 @@ class Barra(object):
         """Calcula a matriz kl do elemento e introduz na matriz Kge do sistema
         """        
         
-           
-        # [Kl] =  [T]^t . [Ke] . [T]   
-        Tt = np.matrix.transpose(self.T)
-        kl = np.dot(Tt,self.Ke)
-        kl = np.dot(kl,self.T) #Matriz local rotacionada para os eixos globais    
-        self.Kl = kl    
-        
         #definir a matriz global so com a parte deste elemento
         
         ref_pontos = []
@@ -200,6 +198,7 @@ class Barra(object):
             ref_pontos.append(pontos.index(i)*ngl)
         self.ref_pontos = ref_pontos
         
+        x,y,k,l = [], [], [], []
         #Introduzir a KL em Kge
         for i in range(len(ref_pontos)*ngl):
                
@@ -208,17 +207,20 @@ class Barra(object):
                 j1 = (i-i%ngl)/ngl
                 k1 = (j-j%ngl)/ngl
                 
-                x = ref_pontos[j1] + i % ngl
-                y = ref_pontos[k1] + j % ngl
+                x.append(ref_pontos[j1] + i % ngl)
+                y.append(ref_pontos[k1] + j % ngl)
+                k.append(i)
+                l.append(j)
                 
-                Kge[x,y] += kl[i,j]
-                        
-        return Kge
+        return x,y,k,l
 
     def calcular_me(self):
         """Create the beam's mass matrix
         """
-        me = lil_matrix((12,12))
+        if elem_matriz != object:
+            me = lil_matrix((12,12), dtype=elem_matriz)
+        else:
+            me = np.zeros((12,12), dtype=elem_matriz)
 
         if self.A != 0:
             # Diagonal Principal        

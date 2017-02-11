@@ -9,11 +9,12 @@ Professor: Paulo Marcelo Vieira Ribeiro
 """
 from __future__ import division
 import warnings
-from settings import ngl, ngls, elem_matriz
+from settings import ngl, elem_matriz
 from scipy.sparse import lil_matrix
 #from scipy.sparse.linalg import eigsh, inv
 #from scipy.linalg import solve_banded # Para solucionar um problema com sparse_matrix
 import numpy as np
+import threading
 
 #%%
 #Funcao para definir matriz de rigidez global em funcao das barras
@@ -30,7 +31,9 @@ def calcular_kg(pontos, elementos):
 
     #Acrescenta-se as matrizes de cada elementos a matriz global
     for i in elementos:
-        kg = i.calcular_kge(pontos, kg)
+        xi, yi, j, k = i.calcular_kge(pontos, kg)
+
+        kg[xi,yi] += i.Kl[j,k]
 
     return kg
 
@@ -210,11 +213,7 @@ def expandir_xgr(Xr, pontos, rest):
     return X
 
 def recriar_fg(Kgr, Xr, Fgr, Kg, X):  ### Funcao obsoleta, tavez possa ser removida
-    """
-    # Verifica se os valores de Xr encontrados multiplicados por Kgr dao Fgr
-    if np.allclose(np.dot(Kgr,Xr),Fgr) == False:
-        print "ERRO!!! Solucao invalida do sistema de equacoes!"
-    """
+
     #Calcula a matriz de forcas global do sistema, que agora apresentara as
     #reacoes nos apoios
     Fg = np.dot(Kg, X)
