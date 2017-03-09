@@ -52,7 +52,6 @@ def func_volume(barras, _b_):
     """ Funcao que calcula internamente o volume total de concreto e a derivada
     desta funcao para implementacao no otimizador.
     """
-
     vol = 0
 
     for barra in barras:
@@ -74,7 +73,7 @@ def calcular_x(kgr, fgr, pontos, restricoes):
     xgr = resolver_sistema(kgr, fgr)
 
     _x_ = expandir_xgr(xgr, pontos, restricoes).astype(float)
-
+    
     _dx = _x_[range(0, len(_x_), 6)]
     _dy = _x_[range(1, len(_x_), 6)]
     _dz = _x_[range(2, len(_x_), 6)]
@@ -105,23 +104,23 @@ if __name__ == "__main__":
     B0 = 0.5 # ponto inicial
     E = 2.1 * 10**7 # Modulo de Elasticidade em Pa
     NI = 0.2 # coeficiente de poisson
-    P = 10**5 # Forca atuante em Newtons
+#    P = 10**2 # Forca atuante em Newtons
     A = B ** 2 # Area da secao transversa
     G = E/(2.0*(1.0 + NI)) # Modulo de elasticidade transversal em Pa
     J = 2.25 *(B / 2.0)** 4.0 # Constante torsional para secao retangular
     RO = 0.0*A # densidade por metro linear do elemento
     I = B ** 4.0 / 12.0 # Momentos de inercia em m^4
     M_CONCENTRADA = 0
-    N_PAV = 3 # Numero de pavimentos da estrutura
+    N_PAV = 5 # Numero de pavimentos da estrutura
     PE_DIREITO = 3 # m
+
+    x_max, y_max = 10, 6
+    dx, dy = 5, 3 # discretizacao da malha nas duas direcoes
 
     # Limitadores
     P_CR = lambdify(B, pi**2 * E * I / (1.0 * PE_DIREITO)**2, "math")
         # Carga critica de Euler
-    DZ_MAX = N_PAV * PE_DIREITO / 250 # flecha maxima
-
-    x_max, y_max = 8, 6
-    dx, dy = 4, 3 # discretizacao da malha nas duas direcoes
+    DZ_MAX = min(x_max, y_max) / 250 # flecha maxima
 
     assert x_max % dx == 0 and y_max % dy == 0 and x_max > dx and y_max > dy,\
         "Rever modulacao!"
@@ -157,8 +156,18 @@ if __name__ == "__main__":
                             A, E, I, I, G, J, RO))
     del index1, index2
 
+    aux = 2 * (x_max//dx + y_max//dy) # numero de pontos no plano xy (z=0)
+    auxx = x_max//dx
+    FZ = 1.0 * 10**3 # Forca atuante em Newtons
+    FX = 10**2 # Forca atuante em Newtons
+    
     # Aplicacao das cargas
-    FORCAS_ESTATICAS = [[10, 3, -P]]
+    FORCAS_VERTICAIS = [[i, 3, -FZ] for i in range(aux, len(PONTOS)+1)]
+    FORCAS_HORIZONTAIS = [[i, 2, -FX] for i in
+                          range(aux+1, len(PONTOS)+1, aux)] +\
+                         [[i, 2, FX] for i in
+                          range(aux+auxx+1, len(PONTOS)+1, aux)]
+    FORCAS_ESTATICAS = FORCAS_VERTICAIS + FORCAS_HORIZONTAIS
 
     # Passo 1 - Calcular as matrizes do sistema
     KG, KGR, MG, MGR, FGR, FG = gerar_matrizes(
@@ -175,10 +184,11 @@ if __name__ == "__main__":
     VOL, JAC = func_volume(BARRAS, B)
 
     # Restricoes
-    CONS = ({'type': 'ineq', 'fun': lambda b: b - 0.12}, # b >= 12 cm
+    CONS = (
+            {'type': 'ineq', 'fun': lambda b: b - 0.19}, # b >= 12 cm
             {'type': 'ineq',
              'fun': lambda b: # Verifica a flecha maxima admissivel
-                    -max(calcular_x(KGR(b[0]), FGR, PONTOS, RESTRICOES)[3])
+                    min(calcular_x(KGR(b[0]), FGR, PONTOS, RESTRICOES)[3])
                     + DZ_MAX},
             {'type': 'ineq',
              'fun': lambda b: # Nao pode haver flambagem dos pilares
@@ -187,13 +197,22 @@ if __name__ == "__main__":
                     + P_CR(b[0])}
            )
 
-    print minimize(fun=VOL, x0=B0, jac=JAC, method='SLSQP',
+    result = minimize(fun=VOL, x0=B0, jac=JAC, method='SLSQP',
                    constraints=CONS, options={'disp':True})
 
     mostrar_barras(BARRAS)
 
-    X, DX, DY, DZ = calcular_x(KGR(0.86568434), FGR, PONTOS, RESTRICOES)
+    print 'x = ', result.x[0]
 
+    X, DX, DY, DZ = calcular_x(KGR(*result.x), FGR, PONTOS, RESTRICOES)
+    
+    Rz = reacoes(KG(*result.x), KGR(*result.x), FGR, PONTOS, RESTRICOES)[2]
+    
+    print "      DX               DY              DZ"
+    print 'Max  ', max(DX)[0], max(DY)[0], max(DZ)[0]
+    print 'Min  ', min(DX)[0], min(DY)[0], min(DZ)[0]
+
+    print 'Max Rz = ', max(Rz)[0], " < ", P_CR(*result.x)
 
 #    # Passo 2 - Analise estatica
 #    X, FG_C_REACOES = analise_estatica(

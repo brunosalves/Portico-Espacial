@@ -27,6 +27,9 @@ def calcular_kg(pontos, elementos):
     elementos: list containing elements object type
     """
 
+    assert len(elementos) == len(set(elementos)),\
+              "Tem elementos repetidos na lista!"
+
     kg = np.zeros((ngl*len(pontos), ngl*len(pontos)), dtype=elem_matriz)
 
     #Acrescenta-se as matrizes de cada elementos a matriz global
@@ -40,6 +43,9 @@ def calcular_kg(pontos, elementos):
 #Funcao para definir a matriz de massas do sistema
 def calcular_mg(pontos, elementos):
 
+    assert len(elementos) == len(set(elementos)),\
+              "Tem elementos repetidos na lista!"
+              
     #zera-se a matriz mg inicialmente
     mg = np.zeros((ngl*len(pontos), ngl*len(pontos)), dtype=elem_matriz)
     #mg = np.zeros((ngl*len(pontos),ngl*len(pontos)), dtype = elem_matriz)
@@ -72,9 +78,10 @@ def remover_linhas_e_colunas(mat, i):
 #%%
 #Funcao para atribuir as restricoes a matriz de rigidez ou a de forca
 def atribuir_restricoes(XX, rest):
-
+    """Remove as linhas e colunas da matriz XX para se implementar as restricoes
+    """
+    assert len(rest) == len(set(rest))
     rest = list(set(rest))
-    #Remove as linhas e colunas da matriz XX para se implementar as restricoes
 
     if np.shape(XX)[1] > 1 and XX.__class__.__name__ != "lil_matrix":
 
@@ -144,16 +151,19 @@ def resolver_sistema(A, B):
         resposta, residuo, rank, s = np.linalg.lstsq(A, B)
 
     # Verifica-se se o sistema pode ser mal condicionado
-    if np.linalg.cond(A) > 10**5:
+    if np.linalg.cond(A) > 10**15:
+        # Para matrizes com elementos de precisao dupla o numero condicional
+        # deve ser menor ou igual a 10**15 para garantir respostas adequadas
+        # do sistema de equacoes.
         msg = ("ATENCAO! Sistema de equacoes mal condicionado!\n"
                "Condicional da matriz Kgr = %s\n" % np.linalg.cond(A))
         warnings.showwarning(msg, UserWarning, '', -1)
     # Verificacao dos resultados obtidos
-    #assert np.allclose(np.dot(A, resposta), B)
-    if not np.allclose(np.dot(A,resposta),B):
-        warnings.showwarning(
-           "ATENCAO!! Solucao invalida do sistema de equacoes!\n",\
-           UserWarning,'',-1)
+    assert np.allclose(np.dot(A, resposta), B)
+#    if not np.allclose(np.dot(A,resposta),B):
+#        warnings.showwarning(
+#           "ATENCAO!! Solucao invalida do sistema de equacoes!\n",\
+#           UserWarning,'',-1)
 
     return resposta
 #%%
